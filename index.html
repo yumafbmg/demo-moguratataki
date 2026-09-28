@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>もぐら叩き</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Dela+Gothic+One&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#06122a; --bg2:#0c2247; --line:#2c4c80;
+  --text:#f2f6ff; --muted:#9fb3d6; --accent:#18c8ec; --gold:#ffd54a; --danger:#ff6b6b;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{height:100%;margin:0}
+body{
+  background:
+    radial-gradient(ellipse at 72% 38%,rgba(24,140,236,.22),transparent 55%),
+    radial-gradient(ellipse at 20% 90%,rgba(24,200,236,.08),transparent 50%),
+    linear-gradient(180deg,var(--bg2),var(--bg));
+  color:var(--text);
+  font-family:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  display:flex;align-items:center;justify-content:center;
+  padding:24px 16px;min-height:100%;overflow-x:hidden;
+}
+.stage{display:grid;grid-template-columns:1fr 1.3fr;gap:56px;align-items:center;max-width:1200px;width:100%}
+.intro .kicker{font-size:clamp(16px,1.8vw,22px);font-weight:700;color:var(--muted);margin:0 0 12px}
+.intro h1{font-family:"Dela Gothic One","Zen Kaku Gothic New",sans-serif;font-weight:400;font-size:clamp(48px,7vw,92px);margin:0 0 20px;letter-spacing:.02em;line-height:1.05;text-shadow:0 6px 30px rgba(24,200,236,.25)}
+.intro .catch{font-size:clamp(28px,3.6vw,48px);font-weight:900;line-height:1.3;margin:0}
+.intro .catch b{color:var(--accent);font-size:1.25em}
+.intro hr{border:0;height:3px;width:110px;background:var(--accent);margin:28px 0;border-radius:2px}
+.intro p.rule{color:var(--muted);font-size:16px;line-height:1.8;margin:0;max-width:30em}
+.intro p.rule em{font-style:normal;color:var(--gold);font-weight:700}
+
+/* ---------- window ---------- */
+.window{
+  position:relative;
+  background:linear-gradient(180deg,#112a53,#0a1a36);
+  border:1.5px solid #3f6db0;border-radius:18px;
+  box-shadow:0 0 0 1px rgba(24,200,236,.08),0 30px 80px rgba(0,0,0,.55),0 0 50px rgba(24,120,236,.22);
+  overflow:hidden;
+}
+.titlebar{display:flex;align-items:center;gap:8px;padding:12px 14px 12px 18px;border-bottom:1px solid var(--line)}
+.titlebar i{width:13px;height:13px;border-radius:50%;display:block}
+.titlebar i:nth-child(1){background:#ff5f57}.titlebar i:nth-child(2){background:#febc2e}.titlebar i:nth-child(3){background:#28c840}
+.sound{margin-left:auto;font:inherit;font-size:13px;font-weight:700;color:var(--muted);background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer;display:flex;gap:6px;align-items:center}
+.sound:hover{color:var(--text)}
+.sound:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.hud{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;padding:16px 20px 14px;align-items:stretch}
+.stat{background:rgba(8,20,44,.6);border:1px solid var(--line);border-radius:12px;padding:10px 18px 12px}
+.stat .lbl{font-size:13px;color:var(--muted);font-weight:700}
+.stat .val{font-family:"Dela Gothic One",sans-serif;font-size:clamp(28px,3.8vw,42px);line-height:1.2;font-variant-numeric:tabular-nums}
+.stat .val small{font-family:"Zen Kaku Gothic New",sans-serif;font-weight:900;font-size:.42em;color:var(--accent);margin-left:4px}
+.stat .val.bump{animation:bump .25s ease-out}
+@keyframes bump{40%{transform:scale(1.25);color:var(--accent)}}
+.bar{height:6px;background:#1d3358;border-radius:3px;margin-top:6px;overflow:hidden}
+.bar span{display:block;height:100%;width:100%;background:linear-gradient(90deg,#0fa6d6,var(--accent));box-shadow:0 0 10px var(--accent);transition:width .1s linear}
+.stat.time.low .bar span{background:var(--danger);box-shadow:0 0 10px var(--danger)}
+.stat.time.low .val{color:var(--danger);animation:pulse 1s infinite}
+.stat.time.low .val small{color:var(--danger)}
+@keyframes pulse{50%{opacity:.6}}
+.combo{align-self:center;text-align:center;min-width:92px;opacity:0;transition:opacity .2s}
+.combo.on{opacity:1}
+.combo .n{font-family:"Dela Gothic One",sans-serif;font-size:30px;line-height:1;color:var(--gold);text-shadow:0 0 16px rgba(255,213,74,.6)}
+.combo .t{font-size:12px;font-weight:900;color:var(--gold);letter-spacing:.1em}
+.combo.pop .n{animation:bump .25s ease-out}
+
+/* ---------- field ---------- */
+.field{
+  position:relative;margin:0 20px 20px;border-radius:14px;padding:22px 18px 18px;overflow:hidden;
+  background:linear-gradient(180deg,#6a5543,#4a3a2c 60%,#3b2e23);
+  box-shadow:inset 0 0 60px rgba(0,0,0,.55),inset 0 2px 0 rgba(255,255,255,.06);
+  user-select:none;-webkit-user-select:none;touch-action:manipulation;
+}
+.field.shake{animation:shake .18s linear}
+@keyframes shake{25%{transform:translate(3px,-2px)}50%{transform:translate(-3px,2px)}75%{transform:translate(2px,1px)}}
+.deco{position:absolute;inset:0;pointer-events:none}
+.deco svg.tex{position:absolute;inset:0;width:100%;height:100%;mix-blend-mode:overlay;opacity:.55}
+.light{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 40%,rgba(255,225,180,.16),transparent 58%),radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(0,0,0,.45))}
+.pebble{position:absolute;border-radius:50%;background:radial-gradient(circle at 35% 30%,#b8a894,#6f604f 60%,#43372b);box-shadow:0 2px 2px rgba(0,0,0,.4)}
+.grass{position:absolute;width:44px;height:40px}
+.grid{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(4px,1.2vw,14px) clamp(8px,2vw,22px);z-index:1}
+
+.hole{position:relative;border:none;padding:0;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent;display:block;width:100%}
+.hole svg{display:block;width:100%;height:auto;overflow:visible}
+.hole:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:24px}
+
+.mg{transform-box:view-box;transform-origin:100px 160px;transform:translateY(150px);transition:transform .16s cubic-bezier(.3,1.5,.55,1)}
+.hole.up .mg{transform:translateY(0)}
+.hole.hit .mg{transform:translateY(22px) scale(1.08,.84);transition:transform .08s ease-out}
+.hole.leave .mg{transform:translateY(150px);transition:transform .22s ease-in}
+.eyes-x,.dizzy,.shine,.smug{display:none}
+.hole.hit .eyes-open{display:none}
+.hole.hit .eyes-x,.hole.hit .dizzy{display:inline}
+.hole.hit .mouth{display:none}
+.dizzy{transform-box:view-box;transform-origin:100px 20px;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hole.gold .body{fill:url(#goldBody)}
+.hole.gold .ear{fill:#d99a14}
+.hole.gold .belly,.hole.gold .paw{fill:#fff1b3}
+.hole.gold .shine{display:inline}
+.shine path{transform-box:fill-box;transform-origin:center;animation:twinkle .7s ease-in-out infinite alternate}
+.shine path:nth-child(2){animation-delay:.25s}.shine path:nth-child(3){animation-delay:.45s}
+@keyframes twinkle{from{transform:scale(.3);opacity:.3}to{transform:scale(1.1);opacity:1}}
+
+/* ---------- effects ---------- */
+.fx{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:visible}
+.dirt{position:absolute;width:var(--s);height:var(--s);border-radius:40%;background:radial-gradient(circle at 35% 30%,#8a6f55,#4a3626);animation:fly .6s cubic-bezier(.2,.6,.4,1) forwards}
+@keyframes fly{
+  0%{transform:translate(0,0) rotate(0)}
+  45%{transform:translate(calc(var(--dx)*.6),var(--dy)) rotate(120deg)}
+  100%{transform:translate(var(--dx),calc(var(--dy) + 70px)) rotate(260deg);opacity:0}
+}
+.spark{position:absolute;font-size:var(--s);color:var(--c);text-shadow:0 0 8px var(--c);animation:burst .55s ease-out forwards;line-height:1}
+@keyframes burst{from{transform:translate(-50%,-50%) scale(.4)}to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1) rotate(90deg);opacity:0}}
+.ring{position:absolute;width:120px;height:60px;margin:-30px 0 0 -60px;border-radius:50%;border:4px solid rgba(255,255,255,.85);animation:ring .35s ease-out forwards}
+.ring.g{border-color:var(--gold)}
+@keyframes ring{from{transform:scale(.2);opacity:1}to{transform:scale(1.4);opacity:0}}
+.puff{position:absolute;width:70px;height:34px;margin:-17px 0 0 -35px;border-radius:50%;background:radial-gradient(ellipse,rgba(200,180,150,.6),transparent 70%);animation:puff .45s ease-out forwards}
+@keyframes puff{from{transform:scale(.3)}to{transform:scale(1.6);opacity:0}}
+.pop{position:absolute;transform:translate(-50%,-50%);font-family:"Dela Gothic One",sans-serif;font-size:clamp(22px,3vw,34px);color:#fff;-webkit-text-stroke:1.5px #0a1a36;paint-order:stroke fill;text-shadow:0 3px 0 #0a1a36,0 0 18px rgba(24,200,236,.8);animation:rise .7s ease-out forwards;white-space:nowrap}
+.pop.g{color:var(--gold);text-shadow:0 3px 0 #0a1a36,0 0 18px rgba(255,213,74,.9)}
+@keyframes rise{0%{transform:translate(-50%,-30%) scale(.5)}25%{transform:translate(-50%,-70%) scale(1.2)}100%{transform:translate(-50%,-160%) scale(1);opacity:0}}
+
+/* ---------- overlay ---------- */
+.overlay{
+  position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  background:rgba(5,14,32,.7);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);text-align:center;padding:20px;
+}
+.overlay[hidden]{display:none}
+.overlay h2{margin:0;font-size:clamp(22px,3vw,32px);font-weight:900}
+.overlay .rank{font-family:"Dela Gothic One",sans-serif;font-size:clamp(18px,2.4vw,24px);color:var(--gold)}
+.overlay .big{font-family:"Dela Gothic One",sans-serif;font-size:clamp(56px,8vw,92px);line-height:1;color:var(--accent);text-shadow:0 0 30px rgba(24,200,236,.5);font-variant-numeric:tabular-nums}
+.overlay p{margin:0;color:var(--muted)}
+.btn{font:inherit;font-weight:900;font-size:18px;color:#04203a;background:linear-gradient(180deg,#5fe0f7,var(--accent));border:0;border-radius:999px;padding:14px 38px;cursor:pointer;box-shadow:0 8px 24px rgba(24,200,236,.35),inset 0 -3px 0 rgba(0,0,0,.15);margin-top:6px}
+.btn:hover{filter:brightness(1.08)}
+.btn:active{transform:translateY(2px)}
+.btn:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.count{position:absolute;inset:0;z-index:6;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.count span{font-family:"Dela Gothic One",sans-serif;font-size:clamp(80px,14vw,150px);color:#fff;-webkit-text-stroke:3px #0a1a36;paint-order:stroke fill;text-shadow:0 6px 0 #0a1a36,0 0 40px rgba(24,200,236,.9);animation:cnt .8s ease-out forwards}
+@keyframes cnt{0%{transform:scale(2.2);opacity:0}25%{transform:scale(1);opacity:1}80%{opacity:1}100%{transform:scale(.8);opacity:0}}
+
+/* ---------- hammer ---------- */
+#hammer{position:fixed;left:0;top:0;width:100px;height:100px;pointer-events:none;z-index:50;opacity:0;transition:opacity .15s;will-change:transform}
+#hammer.show{opacity:1}
+#hammer svg{width:100%;height:100%;transform-origin:92px 94px;transform:rotate(28deg);transition:transform .12s ease-out;filter:drop-shadow(0 8px 8px rgba(0,0,0,.45))}
+#hammer.swing svg{transform:rotate(-6deg);transition:transform .05s ease-in}
+@media (pointer:fine){.field.playing,.field.playing .hole{cursor:none}}
+
+@media (max-width:860px){
+  .stage{grid-template-columns:1fr;gap:22px}
+  .intro{text-align:center}
+  .intro hr{margin:16px auto}
+  .intro p.rule{margin:0 auto}
+  .intro h1{margin-bottom:8px}
+  .hud{padding:12px}
+  .field{margin:0 12px 12px;padding:16px 8px 10px}
+  .combo{min-width:64px}.combo .n{font-size:24px}
+}
+@media (prefers-reduced-motion:reduce){
+  .mg,.bar span{transition:none!important}
+  .dizzy,.shine path,.field.shake{animation:none}
+}
+</style>
+</head>
+<body>
+
+<!-- shared SVG defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <radialGradient id="pitGrad" cx="50%" cy="30%" r="70%">
+      <stop offset="0" stop-color="#000"/><stop offset=".6" stop-color="#0b0a09"/><stop offset="1" stop-color="#2a221b"/>
+    </radialGradient>
+    <linearGradient id="rimBack" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b4658"/><stop offset="1" stop-color="#7d8ba3"/>
+    </linearGradient>
+    <linearGradient id="rimFront" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9fb0cb"/><stop offset=".5" stop-color="#6c7a93"/><stop offset="1" stop-color="#3a4457"/>
+    </linearGradient>
+    <radialGradient id="holeShadow" cx="50%" cy="50%" r="50%">
+      <stop offset=".6" stop-color="rgba(0,0,0,.55)"/><stop offset="1" stop-color="rgba(0,0,0,0)"/>
+    </radialGradient>
+    <radialGradient id="moleBody" cx="38%" cy="25%" r="80%">
+      <stop offset="0" stop-color="#f0ad6e"/><stop offset=".45" stop-color="#c8773c"/><stop offset="1" stop-color="#7a3f1b"/>
+    </radialGradient>
+    <radialGradient id="goldBody" cx="38%" cy="25%" r="80%">
+      <stop offset="0" stop-color="#fff6c2"/><stop offset=".4" stop-color="#ffcf3a"/><stop offset="1" stop-color="#b87a05"/>
+    </radialGradient>
+    <radialGradient id="noseGrad" cx="40%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#ffc2cc"/><stop offset=".5" stop-color="#ff7e93"/><stop offset="1" stop-color="#c94a62"/>
+    </radialGradient>
+    <clipPath id="moleClip" clipPathUnits="userSpaceOnUse">
+      <rect x="-20" y="-60" width="240" height="180"/>
+      <ellipse cx="100" cy="120" rx="78" ry="31"/>
+    </clipPath>
+    <linearGradient id="wood" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#c98b4f"/><stop offset=".5" stop-color="#e8b27a"/><stop offset="1" stop-color="#9a6232"/>
+    </linearGradient>
+    <linearGradient id="hamHead" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff8a7a"/><stop offset=".45" stop-color="#e5392f"/><stop offset="1" stop-color="#931d17"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4f7fb"/><stop offset=".5" stop-color="#a7b3c4"/><stop offset="1" stop-color="#5d6a7d"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<main class="stage">
+  <section class="intro">
+    <p class="kicker">今日作るゲーム</p>
+    <h1>もぐら叩き</h1>
+    <p class="catch"><b>30秒</b>で、<br>何点取れるか</p>
+    <hr>
+    <p class="rule">3×3の穴からランダムに現れるもぐらをクリックし、得点を増やす。ときどき出る<em>金のもぐら</em>は3点。</p>
+  </section>
+
+  <section class="window" aria-label="ゲーム画面">
+    <div class="titlebar">
+      <i aria-hidden="true"></i><i aria-hidden="true"></i><i aria-hidden="true"></i>
+      <button class="sound" id="soundBtn" type="button" aria-pressed="true">🔊 音あり</button>
+    </div>
+    <div class="hud">
+      <div class="stat">
+        <div class="lbl">得点</div>
+        <div class="val" id="score" aria-live="polite">0</div>
+      </div>
+      <div class="combo" id="combo" aria-hidden="true"><div class="n" id="comboN">×2</div><div class="t">コンボ</div></div>
+      <div class="stat time" id="timeBox">
+        <div class="lbl">残り時間</div>
+        <div class="val"><span id="time">30</span><small>秒</small></div>
+        <div class="bar"><span id="bar"></span></div>
+      </div>
+    </div>
+    <div class="field" id="field">
+      <div class="deco" id="deco">
+        <svg class="tex" preserveAspectRatio="none" viewBox="0 0 400 400" aria-hidden="true">
+          <filter id="soilNoise"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="3" seed="7"/><feColorMatrix values="0 0 0 0 .5  0 0 0 0 .4  0 0 0 0 .3  0 0 0 1.4 -.3"/></filter>
+          <rect width="400" height="400" filter="url(#soilNoise)"/>
+        </svg>
+      </div>
+      <div class="light"></div>
+      <div class="grid" id="grid"></div>
+      <div class="fx" id="fx"></div>
+      <div class="count" id="count"></div>
+      <div class="overlay" id="overlay">
+        <h2 id="ovTitle">準備はいい？</h2>
+        <div class="rank" id="ovRank" hidden></div>
+        <div class="big" id="ovScore" hidden></div>
+        <p id="ovSub">もぐらが顔を出したら叩こう</p>
+        <button class="btn" id="startBtn" type="button">スタート</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="hammer" aria-hidden="true">
+  <svg viewBox="0 0 100 100">
+    <line x1="44" y1="40" x2="92" y2="94" stroke="url(#wood)" stroke-width="10" stroke-linecap="round"/>
+    <line x1="80" y1="80" x2="92" y2="94" stroke="#5a3a1c" stroke-width="11" stroke-linecap="round"/>
+    <g transform="rotate(-40 40 34)">
+      <rect x="6" y="16" width="68" height="36" rx="9" fill="url(#hamHead)"/>
+      <rect x="4" y="14" width="12" height="40" rx="4" fill="url(#metal)"/>
+      <rect x="64" y="14" width="12" height="40" rx="4" fill="url(#metal)"/>
+      <rect x="20" y="20" width="40" height="6" rx="3" fill="rgba(255,255,255,.35)"/>
+    </g>
+  </svg>
+</div>
+
+<script>
+(() => {
+  const DURATION = 30;
+  const $ = id => document.getElementById(id);
+  const field = $('field'), grid = $('grid'), fx = $('fx'), overlay = $('overlay');
+  const scoreEl = $('score'), timeEl = $('time'), bar = $('bar'), timeBox = $('timeBox');
+  const comboEl = $('combo'), comboN = $('comboN');
+  const ovTitle = $('ovTitle'), ovScore = $('ovScore'), ovSub = $('ovSub'), ovRank = $('ovRank');
+  const startBtn = $('startBtn'), countEl = $('count'), hammer = $('hammer'), soundBtn = $('soundBtn');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ============ Sound (Web Audio, all synthesized) ============ */
+  let actx = null, master = null, muted = false;
+  function ac() {
+    if (!actx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      actx = new AC();
+      master = actx.createGain(); master.gain.value = .7;
+      const comp = actx.createDynamicsCompressor();
+      master.connect(comp).connect(actx.destination);
+    }
+    if (actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+  function tone({type='sine', f0, f1, dur, gain=.3, delay=0}) {
+    const c = ac(); if (!c || muted) return;
+    const t = c.currentTime + delay;
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t);
+    if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + .006);
+    g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(g).connect(master); o.start(t); o.stop(t + dur + .03);
+  }
+  let noiseBuf = null;
+  function noise({dur, gain=.3, freq=1000, filter='bandpass', q=1, delay=0}) {
+    const c = ac(); if (!c || muted) return;
+    if (!noiseBuf) {
+      noiseBuf = c.createBuffer(1, c.sampleRate * .5, c.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const t = c.currentTime + delay;
+    const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    s.buffer = noiseBuf; f.type = filter; f.frequency.value = freq; f.Q.value = q;
+    g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    s.connect(f).connect(g).connect(master); s.start(t); s.stop(t + dur + .02);
+  }
+  const sfx = {
+    hit(combo) {
+      tone({f0:240, f1:50, dur:.2, gain:.8});                          // ドンッ
+      noise({dur:.05, gain:.6, freq:2200, q:.8});                      // 打撃のパチッ
+      noise({dur:.12, gain:.25, freq:500, filter:'lowpass'});          // 土の振動
+      const p = 1 + Math.min(combo, 10) * .06;
+      tone({type:'triangle', f0:950*p, f1:1700*p, dur:.1, gain:.14, delay:.035}); // もぐらの「キュッ」
+    },
+    gold() {
+      this.hit(0);
+      [1046, 1318, 1568, 2093].forEach((f, i) => tone({type:'triangle', f0:f, dur:.18, gain:.16, delay:.06 + i * .06}));
+      tone({type:'sine', f0:3136, dur:.4, gain:.06, delay:.3});
+    },
+    up() { tone({f0:320, f1:720, dur:.07, gain:.05}); noise({dur:.06, gain:.05, freq:800}); },
+    goldUp() { tone({type:'triangle', f0:1568, f1:2600, dur:.15, gain:.07}); },
+    miss() { noise({dur:.16, gain:.55, freq:260, filter:'lowpass'}); tone({f0:130, f1:55, dur:.12, gain:.35}); },
+    escape() { tone({type:'triangle', f0:600, f1:380, dur:.12, gain:.05}); },
+    beep() { tone({type:'square', f0:660, dur:.14, gain:.08}); },
+    go() { tone({type:'square', f0:990, dur:.35, gain:.1}); tone({type:'square', f0:1320, dur:.35, gain:.05}); },
+    tick() { tone({type:'square', f0:1400, dur:.04, gain:.05}); },
+    end(best) {
+      const notes = best ? [523, 659, 784, 1046, 784, 1046, 1318] : [784, 659, 523, 392];
+      notes.forEach((f, i) => tone({type:'triangle', f0:f, dur:.22, gain:.14, delay:i * (best ? .1 : .13)}));
+    },
+    click() { tone({f0:880, dur:.05, gain:.06}); }
+  };
+  soundBtn.addEventListener('click', () => {
+    muted = !muted;
+    soundBtn.textContent = muted ? '🔇 消音中' : '🔊 音あり';
+    soundBtn.setAttribute('aria-pressed', String(!muted));
+    if (!muted) { ac(); sfx.click(); }
+  });
+
+  /* ============ Field decoration ============ */
+  const deco = $('deco');
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  for (let i = 0; i < 38; i++) {
+    const p = document.createElement('span');
+    p.className = 'pebble';
+    const s = rnd(3, 9);
+    Object.assign(p.style, {width: s + 'px', height: s * .8 + 'px', left: rnd(1, 98) + '%', top: rnd(2, 97) + '%', opacity: rnd(.5, 1)});
+    deco.appendChild(p);
+  }
+  const grassSVG = c => `<svg viewBox="0 0 44 40"><g fill="none" stroke-linecap="round" stroke-width="3">
+    <path d="M22 40 Q20 20 12 6" stroke="${c[0]}"/><path d="M22 40 Q24 18 32 4" stroke="${c[1]}"/>
+    <path d="M22 40 Q22 22 22 10" stroke="${c[2]}"/><path d="M20 40 Q14 28 4 22" stroke="${c[1]}"/><path d="M24 40 Q30 28 40 22" stroke="${c[0]}"/></g></svg>`;
+  [[2,8],[92,4],[1,86],[90,88],[48,94],[46,1]].forEach(([x, y]) => {
+    const g = document.createElement('span');
+    g.className = 'grass';
+    g.innerHTML = grassSVG(['#3f7d3a', '#5fa24f', '#2c5f2a']);
+    Object.assign(g.style, {left: `calc(${x}% - 10px)`, top: `calc(${y}% - 14px)`, transform: `scale(${rnd(.7, 1.1)})`});
+    deco.appendChild(g);
+  });
+
+  /* ============ Holes ============ */
+  const moleSVG = `
+  <svg viewBox="0 0 200 170" aria-hidden="true">
+    <ellipse cx="100" cy="128" rx="98" ry="42" fill="url(#holeShadow)"/>
+    <ellipse cx="100" cy="120" rx="80" ry="33" fill="url(#pitGrad)"/>
+    <ellipse cx="100" cy="120" rx="82" ry="35" fill="none" stroke="url(#rimBack)" stroke-width="9"/>
+    <g clip-path="url(#moleClip)">
+      <g class="mg">
+        <circle class="ear" cx="52" cy="50" r="12" fill="#9c5627"/><circle class="ear" cx="148" cy="50" r="12" fill="#9c5627"/>
+        <path class="body" d="M38,180 L38,86 C38,44 66,22 100,22 C134,22 162,44 162,86 L162,180 Z" fill="url(#moleBody)"/>
+        <ellipse cx="80" cy="40" rx="20" ry="9" fill="rgba(255,255,255,.28)" transform="rotate(-20 80 40)"/>
+        <ellipse class="belly" cx="100" cy="142" rx="42" ry="36" fill="#eab88a"/>
+        <ellipse cx="64" cy="92" rx="10" ry="5.5" fill="#ff8f9c" opacity=".5"/><ellipse cx="136" cy="92" rx="10" ry="5.5" fill="#ff8f9c" opacity=".5"/>
+        <ellipse cx="100" cy="96" rx="27" ry="18" fill="#f6d2aa"/>
+        <g stroke="#3a2414" stroke-width="1.6" stroke-linecap="round" opacity=".75">
+          <line x1="76" y1="94" x2="46" y2="86"/><line x1="76" y1="99" x2="45" y2="100"/>
+          <line x1="124" y1="94" x2="154" y2="86"/><line x1="124" y1="99" x2="155" y2="100"/>
+        </g>
+        <path class="mouth" d="M92,101 Q100,108 108,101" fill="none" stroke="#3a2414" stroke-width="2" stroke-linecap="round"/>
+        <rect x="96" y="104" width="8" height="7" rx="1.5" fill="#fff" stroke="#d9c6b0" stroke-width=".8"/>
+        <ellipse cx="100" cy="86" rx="11" ry="8" fill="url(#noseGrad)"/>
+        <ellipse cx="97" cy="83.5" rx="3.5" ry="2" fill="#fff" opacity=".8"/>
+        <g class="eyes-open">
+          <circle cx="76" cy="68" r="7.5" fill="#1b120b"/><circle cx="124" cy="68" r="7.5" fill="#1b120b"/>
+          <circle cx="78.6" cy="65.2" r="2.6" fill="#fff"/><circle cx="126.6" cy="65.2" r="2.6" fill="#fff"/>
+          <circle cx="74" cy="71" r="1.1" fill="#fff" opacity=".7"/><circle cx="122" cy="71" r="1.1" fill="#fff" opacity=".7"/>
+        </g>
+        <g class="eyes-x" stroke="#1b120b" stroke-width="4" stroke-linecap="round">
+          <path d="M69,61 L83,75 M83,61 L69,75"/><path d="M117,61 L131,75 M131,61 L117,75"/>
+          <ellipse cx="100" cy="106" rx="7" ry="5" fill="#5a2a1a" stroke="none"/>
+        </g>
+        <g class="paw" fill="#eab88a">
+          <ellipse class="paw" cx="66" cy="146" rx="17" ry="10"/><ellipse class="paw" cx="134" cy="146" rx="17" ry="10"/>
+        </g>
+        <g stroke="#8b5a36" stroke-width="1.6" stroke-linecap="round">
+          <path d="M58,149 v5 M66,150 v5 M74,149 v5 M126,149 v5 M134,150 v5 M142,149 v5"/>
+        </g>
+        <g class="shine" fill="#fffbe0">
+          <path d="M30,40 l3,-9 l3,9 l9,3 l-9,3 l-3,9 l-3,-9 l-9,-3 z"/>
+          <path d="M166,30 l2.5,-7 l2.5,7 l7,2.5 l-7,2.5 l-2.5,7 l-2.5,-7 l-7,-2.5 z"/>
+          <path d="M160,100 l2,-6 l2,6 l6,2 l-6,2 l-2,6 l-2,-6 l-6,-2 z"/>
+        </g>
+        <g class="dizzy" fill="#ffd54a" font-size="18" font-family="sans-serif" text-anchor="middle">
+          <text x="70" y="24">★</text><text x="130" y="24">★</text><text x="100" y="6">★</text>
+        </g>
+      </g>
+    </g>
+    <path d="M18,120 A82,35 0 0 0 182,120" fill="none" stroke="url(#rimFront)" stroke-width="10" stroke-linecap="round"/>
+  </svg>`;
+
+  const holes = [];
+  for (let i = 0; i < 9; i++) {
+    const h = document.createElement('button');
+    h.type = 'button'; h.className = 'hole';
+    h.setAttribute('aria-label', `穴 ${i + 1}`);
+    h.innerHTML = moleSVG;
+    h.addEventListener('pointerdown', e => { e.preventDefault(); whack(i, e); });
+    h.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); whack(i, null); } });
+    grid.appendChild(h);
+    holes.push(h);
+  }
+
+  /* ============ Hammer ============ */
+  const fine = matchMedia('(pointer: fine)').matches;
+  let hideT = null;
+  function placeHammer(x, y) { hammer.style.transform = `translate(${x - 17}px, ${y - 55}px)`; }
+  field.addEventListener('pointermove', e => {
+    if (!playing || e.pointerType !== 'mouse') return;
+    placeHammer(e.clientX, e.clientY); hammer.classList.add('show');
+  });
+  field.addEventListener('pointerleave', () => { if (fine) hammer.classList.remove('show'); });
+  field.addEventListener('pointerdown', e => {
+    if (!playing) return;
+    placeHammer(e.clientX, e.clientY);
+    hammer.classList.add('show', 'swing');
+    setTimeout(() => hammer.classList.remove('swing'), 90);
+    if (e.pointerType !== 'mouse') {
+      clearTimeout(hideT);
+      hideT = setTimeout(() => hammer.classList.remove('show'), 280);
+    }
+  });
+
+  /* ============ Effects ============ */
+  function fxPoint(h, fy = .38) {
+    const fr = field.getBoundingClientRect(), hr = h.getBoundingClientRect();
+    return {x: hr.left - fr.left + hr.width / 2, y: hr.top - fr.top + hr.height * fy};
+  }
+  function spawn(cls, x, y, vars = {}, text = '', life = 800) {
+    const el = document.createElement('span');
+    el.className = cls; el.textContent = text;
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+    for (const k in vars) el.style.setProperty(k, vars[k]);
+    fx.appendChild(el);
+    setTimeout(() => el.remove(), life);
+  }
+  function hitFx(h, gold, pts, combo) {
+    const {x, y} = fxPoint(h);
+    const ground = fxPoint(h, .72);
+    spawn('ring' + (gold ? ' g' : ''), x, y + 10, {}, '', 400);
+    if (!reduced) {
+      for (let i = 0; i < 12; i++) {
+        spawn('dirt', ground.x + rnd(-30, 30), ground.y, {'--s': rnd(5, 11) + 'px', '--dx': rnd(-80, 80) + 'px', '--dy': rnd(-80, -30) + 'px'}, '', 650);
+      }
+      const n = gold ? 10 : 6;
+      for (let i = 0; i < n; i++) {
+        const a = (Math.PI * 2 * i) / n + rnd(-.2, .2), d = rnd(50, 85);
+        spawn('spark', x, y, {'--dx': Math.cos(a) * d + 'px', '--dy': Math.sin(a) * d + 'px', '--s': rnd(14, 22) + 'px', '--c': gold ? '#ffd54a' : (i % 2 ? '#ffffff' : '#18c8ec')}, '★', 600);
+      }
+      field.classList.remove('shake'); void field.offsetWidth; field.classList.add('shake');
+    }
+    spawn('pop' + (gold ? ' g' : ''), x, y - 10, {}, gold ? `+${pts} ゴールド!` : (combo >= 3 ? `+${pts} ナイス!` : `+${pts}`), 750);
+  }
+  function missFx(h) {
+    const p = fxPoint(h, .72);
+    spawn('puff', p.x, p.y, {}, '', 450);
+    if (!reduced) for (let i = 0; i < 5; i++) spawn('dirt', p.x + rnd(-20, 20), p.y, {'--s': rnd(4, 7) + 'px', '--dx': rnd(-40, 40) + 'px', '--dy': rnd(-40, -15) + 'px'}, '', 600);
+  }
+
+  /* ============ Game ============ */
+  let score = 0, combo = 0, playing = false, endAt = 0, current = -1, isGold = false;
+  let moleTimer = null, tick = null, lastSec = DURATION;
+  let best = 0;
+  try { best = Number(localStorage.getItem('mogura-best')) || 0; } catch (e) {}
+
+  const remaining = () => Math.max(0, (endAt - performance.now()) / 1000);
+
+  function setCombo(n) {
+    combo = n;
+    if (combo >= 2) {
+      comboN.textContent = '×' + combo;
+      comboEl.classList.add('on');
+      comboEl.classList.remove('pop'); void comboEl.offsetWidth; comboEl.classList.add('pop');
+    } else comboEl.classList.remove('on');
+  }
+
+  function showMole() {
+    if (!playing) return;
+    let next;
+    do { next = Math.floor(Math.random() * 9); } while (next === current);
+    current = next;
+    const h = holes[current];
+    isGold = Math.random() < .12;
+    h.classList.remove('hit', 'leave');
+    h.classList.toggle('gold', isGold);
+    h.classList.add('up');
+    isGold ? sfx.goldUp() : sfx.up();
+    const progress = 1 - remaining() / DURATION;
+    let stay = 1000 - progress * 480 + rnd(0, 220);
+    if (isGold) stay *= .7;
+    moleTimer = setTimeout(() => {
+      h.classList.remove('up'); h.classList.add('leave');
+      sfx.escape(); setCombo(0);
+      moleTimer = setTimeout(showMole, rnd(140, 340));
+    }, stay);
+  }
+
+  function whack(i) {
+    if (!playing) return;
+    const h = holes[i];
+    if (i !== current || !h.classList.contains('up') || h.classList.contains('hit')) {
+      sfx.miss(); missFx(h); setCombo(0); return;
+    }
+    clearTimeout(moleTimer);
+    const gold = isGold, pts = gold ? 3 : 1;
+    score += pts; setCombo(combo + 1);
+    scoreEl.textContent = score;
+    scoreEl.classList.remove('bump'); void scoreEl.offsetWidth; scoreEl.classList.add('bump');
+    gold ? sfx.gold() : sfx.hit(combo);
+    h.classList.add('hit');
+    hitFx(h, gold, pts, combo);
+    setTimeout(() => { h.classList.remove('up', 'hit'); h.classList.add('leave'); }, 260);
+    moleTimer = setTimeout(showMole, 420);
+  }
+
+  function updateTime() {
+    const r = remaining(), sec = Math.ceil(r);
+    timeEl.textContent = sec;
+    bar.style.width = (r / DURATION * 100) + '%';
+    timeBox.classList.toggle('low', r <= 5);
+    if (sec !== lastSec) { if (sec <= 5 && sec > 0) sfx.tick(); lastSec = sec; }
+    if (r <= 0) finish();
+  }
+
+  function countdown(done) {
+    const steps = ['3', '2', '1', 'スタート!'];
+    let k = 0;
+    (function next() {
+      countEl.innerHTML = `<span>${steps[k]}</span>`;
+      k < 3 ? sfx.beep() : sfx.go();
+      k++;
+      if (k < steps.length) setTimeout(next, 700);
+      else setTimeout(() => { done(); setTimeout(() => countEl.innerHTML = '', 500); }, 350);
+    })();
+  }
+
+  function start() {
+    ac();
+    score = 0; scoreEl.textContent = 0; setCombo(0);
+    holes.forEach(h => h.classList.remove('up', 'hit', 'leave', 'gold'));
+    current = -1; lastSec = DURATION;
+    timeEl.textContent = DURATION; bar.style.width = '100%'; timeBox.classList.remove('low');
+    overlay.hidden = true;
+    countdown(() => {
+      playing = true;
+      field.classList.add('playing');
+      endAt = performance.now() + DURATION * 1000;
+      updateTime();
+      tick = setInterval(updateTime, 50);
+      moleTimer = setTimeout(showMole, 250);
+    });
+  }
+
+  function rankOf(s) {
+    if (s >= 35) return 'もぐら叩きの神';
+    if (s >= 25) return 'もぐら叩きの達人';
+    if (s >= 18) return '名人';
+    if (s >= 10) return '腕利き';
+    if (s >= 5) return '見習い';
+    return 'もぐらの勝ち';
+  }
+
+  function finish() {
+    playing = false;
+    field.classList.remove('playing');
+    hammer.classList.remove('show');
+    clearInterval(tick); clearTimeout(moleTimer);
+    holes.forEach(h => { if (h.classList.contains('up')) { h.classList.remove('up'); h.classList.add('leave'); } });
+    setCombo(0);
+    timeEl.textContent = 0; bar.style.width = '0%';
+    const isBest = score > best && score > 0;
+    if (isBest) { best = score; try { localStorage.setItem('mogura-best', String(best)); } catch (e) {} }
+    sfx.end(isBest);
+    ovTitle.textContent = 'タイムアップ！';
+    ovRank.hidden = false; ovRank.textContent = rankOf(score);
+    ovScore.hidden = false; ovScore.textContent = score + '点';
+    ovSub.textContent = isBest ? 'ベスト記録を更新しました' : `ベスト記録 ${best}点`;
+    startBtn.textContent = 'もう一度遊ぶ';
+    setTimeout(() => { overlay.hidden = false; startBtn.focus(); }, 500);
+  }
+
+  startBtn.addEventListener('click', start);
+})();
+</script>
+</body>
+</html>
